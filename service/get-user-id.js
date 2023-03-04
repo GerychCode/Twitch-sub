@@ -16,10 +16,6 @@ module.exports = async (uname) => {
         headers : {'Client-ID': process.env.TwitchClinetID}
     }
     response = await axios.post('https://gql.twitch.tv/gql', json, headers);
-    if(response.data.data.userOrError != undefined && response.data.data.userOrError.id != undefined)
-    {
-        return response.data.data.userOrError.id;
-    } else {
-        return false;
-    }
+    if(response.data.data.userOrError != undefined && response.data.data.userOrError.id != undefined) return response.data.data.userOrError.id;
+    else return false;
 }

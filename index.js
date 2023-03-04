@@ -6,42 +6,40 @@ const generateRandomId = require('./service/utils/generate-random-id.js');
 const PublicIntegrityGetToken = require('./service/public-integrity-get-token.js');
 const FollowRequest = require('./service/follow-request.js');
 const getProxy = require('./service/utils/get-proxy.js');
-// (async () => {
-//     try {
-//         const UserId = await getUserId('thekolkhoznik');
-//         const cookies = await getTwitchCookies(userAgent);
-//     } catch (error) {
-//       console.error(error);
-//     }
-//   })();
-let currennt_porxy = {};
 
-const followFunc = async (access_token) => {
+const followFunc = async (access_token, username, proxyType = process.env.proxyType, clientId = process.env.TwitchClinetID, clientVersion = process.env.ClientV) => {
   try {
-    currennt_porxy = getProxy(process.env.proxyType);
-    const UserId = await getUserId('mihalina_');
-    let userAgent = getUserAgent();
-    //Добавить прокси - не забыть про валидацию 
-    const cookies = await getTwitchCookies(userAgent);
-    if (!cookies) return false; // Ошибка кукисов
-    const KasdaRes = await KasdaResolver(currennt_porxy, userAgent);
-    if (!KasdaRes) return false; // ошипка запроса к касадре
-
-    let ClientID = process.env.TwitchClinetID;
-    let ClientSessionId = generateRandomId(16).toLowerCase(); // Почему нельзя подсосаться к сесии из переменной cookies??
-    let XDeviceId = cookies['unique_id'];
-    let ClientVersion = process.env.ClientV; // Поменять (В идеале тоже спиздить с cookies)
-    let ClientRequestID = generateRandomId(32);
-    let PublicInter = await PublicIntegrityGetToken(ClientID, XDeviceId, ClientRequestID, ClientSessionId, ClientVersion, KasdaRes?.kpsdkct, KasdaRes?.kpsdkcd, access_token, userAgent, currennt_porxy);
-    await FollowRequest(UserId, ClientID, XDeviceId, ClientVersion, ClientSessionId, access_token, PublicInter['token'], userAgent, currennt_porxy);
+    const currentProxy = getProxy(proxyType);
+    const userAgent = getUserAgent();
+    const [userId, cookies, kasdaRes] = await Promise.all([
+      getUserId(username),
+      getTwitchCookies(userAgent),
+      KasdaResolver(currentProxy, userAgent),
+    ]);
+    if (!cookies) {
+      throw new Error('Error getting Twitch cookies');
+    }
+    if (!kasdaRes) {
+      throw new Error('Error resolving Kasda');
+    }
+    const clientSessionId = generateRandomId(16).toLowerCase();
+    const xDeviceId = cookies['unique_id'];
+    const clientRequestId = generateRandomId(32);
+    const publicInter = await PublicIntegrityGetToken(clientId, xDeviceId, clientRequestId, clientSessionId, clientVersion, kasdaRes.kpsdkct, kasdaRes.kpsdkcd, access_token, userAgent, currentProxy);
+    await FollowRequest(userId, clientId, xDeviceId, clientVersion, clientSessionId, access_token, publicInter.token, userAgent, currentProxy);
     return true;
-
   } catch (error) {
     console.error(error);
+    return false;
   }
-}
+};
 
-followFunc("w1vhai1nu9ixrqbzpnqei8exige0il")
-
-
+// setInterval(() => {
+//   try {
+//     followFunc('w1vhai1nu9ixrqbzpnqei8exige0il', 'place');
+//   } catch (error) {
+//     console.error(error);
+//   }
+// }, 20000);
+followFunc('w1vhai1nu9ixrqbzpnqei8exige0il', 'gaechkatm');
 
